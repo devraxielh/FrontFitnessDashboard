@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBrain, faCalculator, faCloudRain, faMapLocation, faMapPin, faSeedling, faSunPlantWilt, faTableList } from '@fortawesome/free-solid-svg-icons';
+import {  faMapLocation } from '@fortawesome/free-solid-svg-icons';
 
 // Assume these icons are imported from an icon library
 import {

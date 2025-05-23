@@ -9,18 +9,30 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  LabelList
+  LabelList,
 } from "recharts";
 
-const API_URL = import.meta.env.VITE_API_URL+'asistencias';
+// Tipado de los datos de asistencia
+interface Asistencia {
+  monitor_nombre: string;
+  comuna_actividad: string;
+  parque: string;
+  fecha_asistencia: string;
+  [key: string]: any;
+}
+
+const API_URL = import.meta.env.VITE_API_URL + "asistencias";
+
 export default function Home() {
   const navigate = useNavigate();
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [monitorSeleccionado, setMonitorSeleccionado] = useState("");
-  const [monitores, setMonitores] = useState([]);
-  const [fechaInicio, setFechaInicio] = useState("2025-03-01");
-  const [fechaFin, setFechaFin] = useState(new Date().toISOString().slice(0, 10));
+  const [data, setData] = useState<Asistencia[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [monitorSeleccionado, setMonitorSeleccionado] = useState<string>("");
+  const [monitores, setMonitores] = useState<string[]>([]);
+  const [fechaInicio, setFechaInicio] = useState<string>("2025-03-01");
+  const [fechaFin, setFechaFin] = useState<string>(
+    new Date().toISOString().slice(0, 10)
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("access");
@@ -30,17 +42,20 @@ export default function Home() {
       return;
     }
 
-    axios.get(API_URL, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-      .then(res => {
+    axios
+      .get<Asistencia[]>(API_URL, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
         setData(res.data);
-        const nombresUnicos = [...new Set(res.data.map(item => item.monitor_nombre))];
+        const nombresUnicos = [
+          ...new Set(res.data.map((item) => item.monitor_nombre)),
+        ];
         setMonitores(nombresUnicos);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Error al cargar datos:", err);
         if (err.response && err.response.status === 401) {
           localStorage.clear();
@@ -50,7 +65,7 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, [navigate]);
 
-  const datosFiltrados = data.filter(d => {
+  const datosFiltrados = data.filter((d) => {
     const fecha = new Date(d.fecha_asistencia);
     const desde = fechaInicio ? new Date(fechaInicio) : null;
     const hasta = fechaFin ? new Date(fechaFin) : null;
@@ -62,28 +77,35 @@ export default function Home() {
     );
   });
 
-  const sortDesc = (arr) => arr.sort((a, b) => b.total - a.total);
+  const sortDesc = <T extends { total: number }>(arr: T[]): T[] =>
+    [...arr].sort((a, b) => b.total - a.total);
 
-  const asistenciasPorComuna = sortDesc(Object.entries(
-    datosFiltrados.reduce((acc, cur) => {
-      acc[cur.comuna_actividad] = (acc[cur.comuna_actividad] || 0) + 1;
-      return acc;
-    }, {})
-  ).map(([comuna, total]) => ({ comuna, total })));
+  const asistenciasPorComuna = sortDesc(
+    Object.entries(
+      datosFiltrados.reduce<Record<string, number>>((acc, cur) => {
+        acc[cur.comuna_actividad] = (acc[cur.comuna_actividad] || 0) + 1;
+        return acc;
+      }, {})
+    ).map(([comuna, total]) => ({ comuna, total }))
+  );
 
-  const asistenciasPorMonitor = sortDesc(Object.entries(
-    data.reduce((acc, cur) => {
-      acc[cur.monitor_nombre] = (acc[cur.monitor_nombre] || 0) + 1;
-      return acc;
-    }, {})
-  ).map(([monitor, total]) => ({ monitor, total })));
+  const asistenciasPorMonitor = sortDesc(
+    Object.entries(
+      data.reduce<Record<string, number>>((acc, cur) => {
+        acc[cur.monitor_nombre] = (acc[cur.monitor_nombre] || 0) + 1;
+        return acc;
+      }, {})
+    ).map(([monitor, total]) => ({ monitor, total }))
+  );
 
-  const graficaParques = sortDesc(Object.entries(
-    datosFiltrados.reduce((acc, cur) => {
-      acc[cur.parque] = (acc[cur.parque] || 0) + 1;
-      return acc;
-    }, {})
-  ).map(([parque, total]) => ({ parque, total })));
+  const graficaParques = sortDesc(
+    Object.entries(
+      datosFiltrados.reduce<Record<string, number>>((acc, cur) => {
+        acc[cur.parque] = (acc[cur.parque] || 0) + 1;
+        return acc;
+      }, {})
+    ).map(([parque, total]) => ({ parque, total }))
+  );
 
   return (
     <>
@@ -98,12 +120,20 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <section id="dashboard-pdf" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-md dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">📊 Asistencias</h2>
+            <section
+              id="dashboard-pdf"
+              className="rounded-2xl border border-gray-200 bg-white p-6 shadow-md dark:border-gray-800 dark:bg-gray-900"
+            >
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+                📊 Asistencias
+              </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
-                  <label htmlFor="monitor" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label
+                    htmlFor="monitor"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1"
+                  >
                     Selecciona un monitor:
                   </label>
                   <select
@@ -114,7 +144,9 @@ export default function Home() {
                   >
                     <option value="">Todos los monitores</option>
                     {monitores.map((nombre, idx) => (
-                      <option key={idx} value={nombre}>{nombre}</option>
+                      <option key={idx} value={nombre}>
+                        {nombre}
+                      </option>
                     ))}
                   </select>
                   {monitorSeleccionado && (
@@ -126,6 +158,7 @@ export default function Home() {
                     </button>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Fecha inicial:
@@ -137,6 +170,7 @@ export default function Home() {
                     onChange={(e) => setFechaInicio(e.target.value)}
                   />
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Fecha final:
@@ -152,8 +186,11 @@ export default function Home() {
 
               {(monitorSeleccionado || fechaInicio || fechaFin) && (
                 <div className="mb-4 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
-                  <strong>🔍 Filtros activos:</strong><br />
-                  {monitorSeleccionado && <div>• Monitor: {monitorSeleccionado}</div>}
+                  <strong>🔍 Filtros activos:</strong>
+                  <br />
+                  {monitorSeleccionado && (
+                    <div>• Monitor: {monitorSeleccionado}</div>
+                  )}
                   {fechaInicio && <div>• Desde: {fechaInicio}</div>}
                   {fechaFin && <div>• Hasta: {fechaFin}</div>}
                 </div>
@@ -161,7 +198,9 @@ export default function Home() {
 
               {!monitorSeleccionado && (
                 <div className="mb-10">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">👤 Participación por Monitor</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                    👤 Participación por Monitor
+                  </h3>
                   <ResponsiveContainer width="100%" height={500}>
                     <BarChart
                       data={asistenciasPorMonitor}
@@ -171,10 +210,20 @@ export default function Home() {
                         }
                       }}
                     >
-                      <XAxis dataKey="monitor" angle={-90} textAnchor="end" interval={0} height={250} />
+                      <XAxis
+                        dataKey="monitor"
+                        angle={-90}
+                        textAnchor="end"
+                        interval={0}
+                        height={250}
+                      />
                       <YAxis allowDecimals={false} />
                       <Tooltip />
-                      <Bar dataKey="total" fill="#00C49F" radius={[5, 5, 0, 0]}>
+                      <Bar
+                        dataKey="total"
+                        fill="#00C49F"
+                        radius={[5, 5, 0, 0]}
+                      >
                         <LabelList dataKey="total" position="top" />
                       </Bar>
                     </BarChart>
@@ -183,13 +232,25 @@ export default function Home() {
               )}
 
               <div className="mb-10">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">📍 Asistencias por Comuna</h3>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                  📍 Asistencias por Comuna
+                </h3>
                 <ResponsiveContainer width="100%" height={400}>
                   <BarChart data={asistenciasPorComuna}>
-                    <XAxis dataKey="comuna" angle={-90} textAnchor="end" interval={0} height={50} />
+                    <XAxis
+                      dataKey="comuna"
+                      angle={-90}
+                      textAnchor="end"
+                      interval={0}
+                      height={50}
+                    />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
-                    <Bar dataKey="total" fill="#8884d8" radius={[5, 5, 0, 0]}>
+                    <Bar
+                      dataKey="total"
+                      fill="#8884d8"
+                      radius={[5, 5, 0, 0]}
+                    >
                       <LabelList dataKey="total" position="top" />
                     </Bar>
                   </BarChart>
@@ -197,13 +258,25 @@ export default function Home() {
               </div>
 
               <div className="mb-10">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">🏞️ Asistencias por Parque</h3>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                  🏞️ Asistencias por Parque
+                </h3>
                 <ResponsiveContainer width="100%" height={600}>
                   <BarChart data={graficaParques}>
-                    <XAxis dataKey="parque" angle={-90} textAnchor="end" interval={0} height={300} />
+                    <XAxis
+                      dataKey="parque"
+                      angle={-90}
+                      textAnchor="end"
+                      interval={0}
+                      height={300}
+                    />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
-                    <Bar dataKey="total" fill="#ff8042" radius={[5, 5, 0, 0]}>
+                    <Bar
+                      dataKey="total"
+                      fill="#ff8042"
+                      radius={[5, 5, 0, 0]}
+                    >
                       <LabelList dataKey="total" position="top" />
                     </Bar>
                   </BarChart>
