@@ -2,21 +2,15 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import PageMeta from "../components/common/PageMeta";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  LabelList,
-} from "recharts";
+import FiltrosAsistencia from "./FiltrosAsistencia";
+import GraficoPromedioParque from "./GraficoPromedioParque";
 
-// Tipado de los datos de asistencia
 interface Asistencia {
   monitor_nombre: string;
   comuna_actividad: string;
   parque: string;
+  barrio_actividad: string;
+  tipo_actividad: string;
   fecha_asistencia: string;
   [key: string]: any;
 }
@@ -27,18 +21,20 @@ export default function Home() {
   const navigate = useNavigate();
   const [data, setData] = useState<Asistencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [monitorSeleccionado, setMonitorSeleccionado] = useState<string>("");
-  const [monitores, setMonitores] = useState<string[]>([]);
-  const [fechaInicio, setFechaInicio] = useState<string>("2025-03-01");
-  const [fechaFin, setFechaFin] = useState<string>(
-    new Date().toISOString().slice(0, 10)
-  );
+
+  const [zonaSeleccionada, setZonaSeleccionada] = useState<string>("todos");
+  const [barrioSeleccionado, setBarrioSeleccionado] = useState<string>("");
+  const [parqueSeleccionado, setParqueSeleccionado] = useState<string>("");
+  const [tipoActividadSeleccionado, setTipoActividadSeleccionado] = useState<string>("");
+
+  const [fechaInicio, setFechaInicio] = useState<string>("2025-01-01");
+  const [fechaFin, setFechaFin] = useState<string>(new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     const token = localStorage.getItem("access");
 
     if (!token) {
-      navigate("/login");
+      navigate("/");
       return;
     }
 
@@ -50,10 +46,6 @@ export default function Home() {
       })
       .then((res) => {
         setData(res.data);
-        const nombresUnicos = [
-          ...new Set(res.data.map((item) => item.monitor_nombre)),
-        ];
-        setMonitores(nombresUnicos);
       })
       .catch((err) => {
         console.error("Error al cargar datos:", err);
@@ -65,52 +57,88 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, [navigate]);
 
-  const datosFiltrados = data.filter((d) => {
-    const fecha = new Date(d.fecha_asistencia);
-    const desde = fechaInicio ? new Date(fechaInicio) : null;
-    const hasta = fechaFin ? new Date(fechaFin) : null;
+  const esNumero = (valor: string): boolean => !isNaN(Number(valor));
 
-    return (
-      (!monitorSeleccionado || d.monitor_nombre === monitorSeleccionado) &&
-      (!desde || fecha >= desde) &&
-      (!hasta || fecha <= hasta)
-    );
+  const barriosFiltrados = [
+    ...new Set(
+      data
+        .filter((item) => {
+          if (zonaSeleccionada === "urbano") return esNumero(item.comuna_actividad);
+          if (zonaSeleccionada === "rural") return !isNumero(item.comuna_actividad);
+          return true;
+        })
+        .map((item) => item.barrio_actividad)
+        .filter(Boolean)
+    ),
+  ];
+
+  const parquesFiltrados = [
+    ...new Set(
+      data
+        .filter((item) => {
+          return barrioSeleccionado === "" || item.barrio_actividad === barrioSeleccionado;
+        })
+        .map((item) => item.parque)
+        .filter(Boolean)
+    ),
+  ];
+
+  const tiposActividadFiltrados = [
+    ...new Set(data.map((item) => item.tipo_actividad).filter(Boolean))
+  ];
+
+  useEffect(() => {
+    if (barrioSeleccionado && !barriosFiltrados.includes(barrioSeleccionado)) {
+      setBarrioSeleccionado("");
+      setParqueSeleccionado("");
+    }
+  }, [zonaSeleccionada, barriosFiltrados]);
+
+  useEffect(() => {
+    if (parqueSeleccionado && !parquesFiltrados.includes(parqueSeleccionado)) {
+      setParqueSeleccionado("");
+    }
+  }, [barrioSeleccionado, parquesFiltrados]);
+
+  const datosFiltrados = data.filter((item) => {
+    const esZonaOk =
+      zonaSeleccionada === "todos" ||
+      (zonaSeleccionada === "urbano" && esNumero(item.comuna_actividad)) ||
+      (zonaSeleccionada === "rural" && !esNumero(item.comuna_actividad));
+
+    const esBarrioOk =
+      barrioSeleccionado === "" || item.barrio_actividad === barrioSeleccionado;
+
+    const esParqueOk =
+      parqueSeleccionado === "" || item.parque === parqueSeleccionado;
+
+    const esTipoOk =
+      tipoActividadSeleccionado === "" || item.tipo_actividad === tipoActividadSeleccionado;
+
+    const fecha = new Date(item.fecha_asistencia);
+    const desde = new Date(fechaInicio);
+    const hasta = new Date(fechaFin);
+
+    const esFechaOk = fecha >= desde && fecha <= hasta;
+
+    return esZonaOk && esBarrioOk && esParqueOk && esTipoOk && esFechaOk;
   });
 
-  const sortDesc = <T extends { total: number }>(arr: T[]): T[] =>
-    [...arr].sort((a, b) => b.total - a.total);
+  const parquesUnicosFiltrados = new Set(datosFiltrados.map((d) => d.parque));
+  const totalParquesUnicos = parquesUnicosFiltrados.size;
 
-  const asistenciasPorComuna = sortDesc(
-    Object.entries(
-      datosFiltrados.reduce<Record<string, number>>((acc, cur) => {
-        acc[cur.comuna_actividad] = (acc[cur.comuna_actividad] || 0) + 1;
-        return acc;
-      }, {})
-    ).map(([comuna, total]) => ({ comuna, total }))
-  );
-
-  const asistenciasPorMonitor = sortDesc(
-    Object.entries(
-      data.reduce<Record<string, number>>((acc, cur) => {
-        acc[cur.monitor_nombre] = (acc[cur.monitor_nombre] || 0) + 1;
-        return acc;
-      }, {})
-    ).map(([monitor, total]) => ({ monitor, total }))
-  );
-
-  const graficaParques = sortDesc(
-    Object.entries(
-      datosFiltrados.reduce<Record<string, number>>((acc, cur) => {
-        acc[cur.parque] = (acc[cur.parque] || 0) + 1;
-        return acc;
-      }, {})
-    ).map(([parque, total]) => ({ parque, total }))
-  );
+  const limpiarFiltros = () => {
+    setZonaSeleccionada("todos");
+    setBarrioSeleccionado("");
+    setParqueSeleccionado("");
+    setTipoActividadSeleccionado("");
+    setFechaInicio("2025-01-01");
+    setFechaFin(new Date().toISOString().slice(0, 10));
+  };
 
   return (
     <>
       <PageMeta title="Fitness" description="Asistencias" />
-
       <div className="grid grid-cols-12 gap-6 px-4 xl:px-8 mt-4">
         <div className="col-span-12">
           {loading ? (
@@ -128,160 +156,42 @@ export default function Home() {
                 📊 Asistencias
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div>
-                  <label
-                    htmlFor="monitor"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1"
-                  >
-                    Selecciona un monitor:
-                  </label>
-                  <select
-                    id="monitor"
-                    className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={monitorSeleccionado}
-                    onChange={(e) => setMonitorSeleccionado(e.target.value)}
-                  >
-                    <option value="">Todos los monitores</option>
-                    {monitores.map((nombre, idx) => (
-                      <option key={idx} value={nombre}>
-                        {nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {monitorSeleccionado && (
-                    <button
-                      onClick={() => setMonitorSeleccionado("")}
-                      className="mt-1 text-blue-600 underline text-sm"
-                    >
-                      Limpiar filtro
-                    </button>
-                  )}
-                </div>
+              <FiltrosAsistencia
+                zona={zonaSeleccionada}
+                barrio={barrioSeleccionado}
+                parque={parqueSeleccionado}
+                tipoActividad={tipoActividadSeleccionado}
+                tiposActividadDisponibles={tiposActividadFiltrados}
+                fechaInicio={fechaInicio}
+                fechaFin={fechaFin}
+                barriosDisponibles={barriosFiltrados}
+                parquesDisponibles={parquesFiltrados}
+                onZonaChange={setZonaSeleccionada}
+                onBarrioChange={setBarrioSeleccionado}
+                onParqueChange={setParqueSeleccionado}
+                onTipoActividadChange={setTipoActividadSeleccionado}
+                onFechaInicioChange={setFechaInicio}
+                onFechaFinChange={setFechaFin}
+                onLimpiar={limpiarFiltros}
+              />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                    Fecha inicial:
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full border border-gray-300 p-2 rounded-lg"
-                    value={fechaInicio}
-                    onChange={(e) => setFechaInicio(e.target.value)}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-800 dark:text-white mb-6">
+                <div className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Usuarios Registrados</p>
+                  <p className="text-2xl font-bold mt-1 dark:text-blue-400">2,421</p>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                    Fecha final:
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full border border-gray-300 p-2 rounded-lg"
-                    value={fechaFin}
-                    onChange={(e) => setFechaFin(e.target.value)}
-                  />
+                <div className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Asistencia</p>
+                  <p className="text-2xl font-bold mt-1 dark:text-green-400">{datosFiltrados.length}</p>
+                </div>
+                <div className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Parques con Asistencia</p>
+                  <p className="text-2xl font-bold mt-1  dark:text-purple-400">{totalParquesUnicos}</p>
                 </div>
               </div>
 
-              {(monitorSeleccionado || fechaInicio || fechaFin) && (
-                <div className="mb-4 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
-                  <strong>🔍 Filtros activos:</strong>
-                  <br />
-                  {monitorSeleccionado && (
-                    <div>• Monitor: {monitorSeleccionado}</div>
-                  )}
-                  {fechaInicio && <div>• Desde: {fechaInicio}</div>}
-                  {fechaFin && <div>• Hasta: {fechaFin}</div>}
-                </div>
-              )}
 
-              {!monitorSeleccionado && (
-                <div className="mb-10">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
-                    👤 Participación por Monitor
-                  </h3>
-                  <ResponsiveContainer width="100%" height={500}>
-                    <BarChart
-                      data={asistenciasPorMonitor}
-                      onClick={(e) => {
-                        if (e && e.activeLabel) {
-                          setMonitorSeleccionado(e.activeLabel);
-                        }
-                      }}
-                    >
-                      <XAxis
-                        dataKey="monitor"
-                        angle={-90}
-                        textAnchor="end"
-                        interval={0}
-                        height={250}
-                      />
-                      <YAxis allowDecimals={false} />
-                      <Tooltip />
-                      <Bar
-                        dataKey="total"
-                        fill="#00C49F"
-                        radius={[5, 5, 0, 0]}
-                      >
-                        <LabelList dataKey="total" position="top" />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              <div className="mb-10">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
-                  📍 Asistencias por Comuna
-                </h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={asistenciasPorComuna}>
-                    <XAxis
-                      dataKey="comuna"
-                      angle={-90}
-                      textAnchor="end"
-                      interval={0}
-                      height={50}
-                    />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar
-                      dataKey="total"
-                      fill="#8884d8"
-                      radius={[5, 5, 0, 0]}
-                    >
-                      <LabelList dataKey="total" position="top" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="mb-10">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
-                  🏞️ Asistencias por Parque
-                </h3>
-                <ResponsiveContainer width="100%" height={600}>
-                  <BarChart data={graficaParques}>
-                    <XAxis
-                      dataKey="parque"
-                      angle={-90}
-                      textAnchor="end"
-                      interval={0}
-                      height={300}
-                    />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar
-                      dataKey="total"
-                      fill="#ff8042"
-                      radius={[5, 5, 0, 0]}
-                    >
-                      <LabelList dataKey="total" position="top" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <GraficoPromedioParque datosFiltrados={datosFiltrados} />
             </section>
           )}
         </div>
