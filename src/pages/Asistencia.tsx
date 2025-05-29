@@ -64,7 +64,7 @@ export default function Home() {
       data
         .filter((item) => {
           if (zonaSeleccionada === "urbano") return esNumero(item.comuna_actividad);
-          if (zonaSeleccionada === "rural") return !isNumero(item.comuna_actividad);
+          if (zonaSeleccionada === "rural") return !esNumero(item.comuna_actividad);
           return true;
         })
         .map((item) => item.barrio_actividad)
