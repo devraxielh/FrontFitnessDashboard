@@ -23,6 +23,7 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(true);
 
   const [zonaSeleccionada, setZonaSeleccionada] = useState<string>("todos");
+  const [comunaSeleccionada, setComunaSeleccionada] = useState<string>("");
   const [barrioSeleccionado, setBarrioSeleccionado] = useState<string>("");
   const [parqueSeleccionado, setParqueSeleccionado] = useState<string>("");
   const [tipoActividadSeleccionado, setTipoActividadSeleccionado] = useState<string>("");
@@ -59,13 +60,31 @@ export default function Home() {
 
   const esNumero = (valor: string): boolean => !isNaN(Number(valor));
 
-  const barriosFiltrados = [
+  const comunasFiltradas = [
     ...new Set(
       data
         .filter((item) => {
           if (zonaSeleccionada === "urbano") return esNumero(item.comuna_actividad);
           if (zonaSeleccionada === "rural") return !esNumero(item.comuna_actividad);
           return true;
+        })
+        .map((item) => item.comuna_actividad)
+        .filter(Boolean)
+    ),
+  ];
+
+  const barriosFiltrados = [
+    ...new Set(
+      data
+        .filter((item) => {
+          const esZonaOk =
+            zonaSeleccionada === "todos" ||
+            (zonaSeleccionada === "urbano" && esNumero(item.comuna_actividad)) ||
+            (zonaSeleccionada === "rural" && !esNumero(item.comuna_actividad));
+          const esComunaOk =
+            comunaSeleccionada === "" || item.comuna_actividad === comunaSeleccionada;
+
+          return esZonaOk && esComunaOk;
         })
         .map((item) => item.barrio_actividad)
         .filter(Boolean)
@@ -88,11 +107,19 @@ export default function Home() {
   ];
 
   useEffect(() => {
+    if (comunaSeleccionada && !comunasFiltradas.includes(comunaSeleccionada)) {
+      setComunaSeleccionada("");
+      setBarrioSeleccionado("");
+      setParqueSeleccionado("");
+    }
+  }, [zonaSeleccionada, comunasFiltradas]);
+
+  useEffect(() => {
     if (barrioSeleccionado && !barriosFiltrados.includes(barrioSeleccionado)) {
       setBarrioSeleccionado("");
       setParqueSeleccionado("");
     }
-  }, [zonaSeleccionada, barriosFiltrados]);
+  }, [comunaSeleccionada, barriosFiltrados]);
 
   useEffect(() => {
     if (parqueSeleccionado && !parquesFiltrados.includes(parqueSeleccionado)) {
@@ -105,6 +132,9 @@ export default function Home() {
       zonaSeleccionada === "todos" ||
       (zonaSeleccionada === "urbano" && esNumero(item.comuna_actividad)) ||
       (zonaSeleccionada === "rural" && !esNumero(item.comuna_actividad));
+
+    const esComunaOk =
+      comunaSeleccionada === "" || item.comuna_actividad === comunaSeleccionada;
 
     const esBarrioOk =
       barrioSeleccionado === "" || item.barrio_actividad === barrioSeleccionado;
@@ -121,14 +151,14 @@ export default function Home() {
 
     const esFechaOk = fecha >= desde && fecha <= hasta;
 
-    return esZonaOk && esBarrioOk && esParqueOk && esTipoOk && esFechaOk;
+    return esZonaOk && esComunaOk && esBarrioOk && esParqueOk && esTipoOk && esFechaOk;
   });
 
-  const parquesUnicosFiltrados = new Set(datosFiltrados.map((d) => d.parque));
-  const totalParquesUnicos = parquesUnicosFiltrados.size;
+  const totalParquesUnicos = new Set(datosFiltrados.map((d) => d.parque)).size;
 
   const limpiarFiltros = () => {
     setZonaSeleccionada("todos");
+    setComunaSeleccionada("");
     setBarrioSeleccionado("");
     setParqueSeleccionado("");
     setTipoActividadSeleccionado("");
@@ -158,15 +188,18 @@ export default function Home() {
 
               <FiltrosAsistencia
                 zona={zonaSeleccionada}
+                comuna={comunaSeleccionada}
                 barrio={barrioSeleccionado}
                 parque={parqueSeleccionado}
                 tipoActividad={tipoActividadSeleccionado}
+                comunasDisponibles={comunasFiltradas}
+                barriosDisponibles={barriosFiltrados}
+                parquesDisponibles={parquesFiltrados}
                 tiposActividadDisponibles={tiposActividadFiltrados}
                 fechaInicio={fechaInicio}
                 fechaFin={fechaFin}
-                barriosDisponibles={barriosFiltrados}
-                parquesDisponibles={parquesFiltrados}
                 onZonaChange={setZonaSeleccionada}
+                onComunaChange={setComunaSeleccionada}
                 onBarrioChange={setBarrioSeleccionado}
                 onParqueChange={setParqueSeleccionado}
                 onTipoActividadChange={setTipoActividadSeleccionado}
@@ -178,18 +211,17 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-800 dark:text-white mb-6">
                 <div className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Total Usuarios Registrados</p>
-                  <p className="text-2xl font-bold mt-1 dark:text-blue-400">2,421</p>
+                  <p className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">2,421</p>
                 </div>
                 <div className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Asistencia</p>
-                  <p className="text-2xl font-bold mt-1 dark:text-green-400">{datosFiltrados.length}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Asistencia Total (filtrada)</p>
+                  <p className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{datosFiltrados.length}</p>
                 </div>
                 <div className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Parques con Asistencia</p>
-                  <p className="text-2xl font-bold mt-1  dark:text-purple-400">{totalParquesUnicos}</p>
+                  <p className="text-2xl font-bold mt-1 text-purple-600 dark:text-purple-400">{totalParquesUnicos}</p>
                 </div>
               </div>
-
 
               <GraficoPromedioParque datosFiltrados={datosFiltrados} />
             </section>
