@@ -7,7 +7,14 @@ layer(base);
   @apply w-full border border-gray-300 dark:border-gray-600 px-3 py-2 rounded-md dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500;
 }
 @custom-variant dark (&:is(.dark *));
-
+.leaflet-tooltip-transparent {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: black;
+  font-weight: bold;
+  font-size: 1.4rem;
+}
 @theme {
   --font-*: initial;
   --font-outfit: Outfit, sans-serif;

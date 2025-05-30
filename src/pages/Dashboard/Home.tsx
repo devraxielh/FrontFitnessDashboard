@@ -1,14 +1,32 @@
 import PageMeta from "../../components/common/PageMeta";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import MapaComunasAsistencias from "../MapaComunasAsistencias";
 
-export default function Home() {
+interface Asistencia {
+  comuna_actividad: string;
+  [key: string]: any;
+}
+
+export default function Dashboard() {
+  const [datosFiltrados, setDatosFiltrados] = useState<Asistencia[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    if (!token) return;
+
+    axios
+      .get<Asistencia[]>(import.meta.env.VITE_API_URL + "asistencias", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        setDatosFiltrados(res.data); // Puedes filtrar aquí si lo deseas
+      });
+  }, []);
+
   return (
-    <>
-      <PageMeta title="RanchSmart" description="Panel principal de monitoreo ganadero" />
-
-      <div className="grid grid-cols-12 gap-6 px-4 xl:px-8 mt-4">
-
-
-      </div>
-    </>
+      <>
+      <MapaComunasAsistencias datosFiltrados={datosFiltrados} />
+      </>
   );
 }
