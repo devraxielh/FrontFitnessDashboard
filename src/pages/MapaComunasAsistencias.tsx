@@ -85,6 +85,7 @@ export default function MapaComunasAsistencias({ datosFiltrados }: MapaComunasAs
                 className="leaflet-tooltip leaflet-tooltip-own"
               >
                 <div style={{
+                 background: "transparent",
                   textAlign: "center",
                   fontWeight: "bold",
                   fontSize: "1.1rem",
