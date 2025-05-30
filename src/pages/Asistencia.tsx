@@ -224,6 +224,14 @@ export default function Home() {
               </div>
 
               <GraficoPromedioParque datosFiltrados={datosFiltrados} />
+              <hr></hr>
+                <ul className="list-disc pl-5 space-y-1">
+                  {datosFiltrados.map((d, i) => (
+                    <li key={i}>
+                      {d.fecha_asistencia} — {d.monitor_nombre} — {d.parque} — {d.barrio_actividad} — {d.tipo_actividad} — {d.comuna_actividad}
+                    </li>
+                  ))}
+                </ul>
             </section>
           )}
         </div>
