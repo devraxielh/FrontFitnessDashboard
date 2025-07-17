@@ -21,6 +21,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [data, setData] = useState<Asistencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [totalUsuarios, setTotalUsuarios] = useState<number>(0);
 
   const [zonaSeleccionada, setZonaSeleccionada] = useState<string>("todos");
   const [comunaSeleccionada, setComunaSeleccionada] = useState<string>("");
@@ -56,6 +57,28 @@ export default function Home() {
         }
       })
       .finally(() => setLoading(false));
+  }, [navigate]);
+
+  // Función para obtener el total de usuarios
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    
+    if (!token) return;
+
+    const fetchTotalUsuarios = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}usuarios/count`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setTotalUsuarios(response.data.total_usuarios);
+      } catch (error) {
+        console.error("Error al obtener total de usuarios:", error);
+      }
+    };
+
+    fetchTotalUsuarios();
   }, [navigate]);
 
   const esNumero = (valor: string): boolean => !isNaN(Number(valor));
@@ -211,7 +234,9 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-800 dark:text-white mb-6">
                 <div className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Total Usuarios Registrados</p>
-                  <p className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">2,421</p>
+                  <p className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">
+                    {totalUsuarios.toLocaleString()}
+                  </p>
                 </div>
                 <div className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Asistencia Total (filtrada)</p>
