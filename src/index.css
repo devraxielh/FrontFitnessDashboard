@@ -25,6 +25,29 @@ layer(base);
   text-align: center;
   padding: 4px;
 }
+
+/* Estilos para el mapa responsive y z-index */
+.leaflet-container {
+  z-index: 1 !important;
+}
+
+.leaflet-control-container {
+  z-index: 2 !important;
+}
+
+.leaflet-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-top {
+  z-index: 2 !important;
+}
+
+/* Asegurar que el sidebar siempre esté por encima */
+.leaflet-container * {
+  z-index: 1 !important;
+}
+
 @theme {
   --font-*: initial;
   --font-outfit: Outfit, sans-serif;
