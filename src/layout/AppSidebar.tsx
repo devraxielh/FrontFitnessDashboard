@@ -10,6 +10,7 @@ import {
   GridIcon,
   HorizontaLDots,
   PieChartIcon,
+  UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 
@@ -31,8 +32,13 @@ const navItems: NavItem[] = [
     name: "Asistencia",
     path: "/asistencia",
   },
-
-
+  {
+    icon: <UserCircleIcon />,
+    name: "Monitores",
+    subItems: [
+      { name: "Lista de Monitores", path: "/monitores", pro: false },
+    ],
+  },
 ];
 
 const othersItems: NavItem[] = [
