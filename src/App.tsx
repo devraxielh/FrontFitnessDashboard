@@ -6,6 +6,7 @@ import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import Asistencia from "./pages/Asistencia";
 import ListaMonitores from "./pages/ListaMonitores";
+import Caracterizacion from "./pages/Caracterizacion";
 import PrivateRoute from './utils/PrivateRoute';
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/asistencia" element={<Asistencia />} />
           <Route path="/monitores" element={<ListaMonitores />} />
+          <Route path="/caracterizacion" element={<Caracterizacion />} />
         </Route>
         {/* Ruta 404 */}
         <Route path="*" element={<NotFound />} />

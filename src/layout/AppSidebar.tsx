@@ -39,6 +39,11 @@ const navItems: NavItem[] = [
       { name: "Lista de Monitores", path: "/monitores", pro: false },
     ],
   },
+  {
+    icon: <PieChartIcon />,
+    name: "Caracterización",
+    path: "/caracterizacion",
+  },
 ];
 
 const othersItems: NavItem[] = [
