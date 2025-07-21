@@ -54,7 +54,7 @@ const ProgressBar = ({ percentage, colorClass }: { percentage: number; colorClas
   );
 };
 
-export default function Home() {
+export default function Asistencia() {
   const navigate = useNavigate();
   const [data, setData] = useState<Asistencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -417,6 +417,7 @@ export default function Home() {
               )}
 
               <GraficoPromedioParque datosFiltrados={datosFiltrados} />
+              {/* 
               <hr></hr>
                 <ul className="list-disc pl-5 space-y-1">
                   {datosFiltrados.map((d, i) => (
@@ -425,6 +426,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
+              */}
             </section>
           )}
         </div>
