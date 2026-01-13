@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {  faMapLocation } from '@fortawesome/free-solid-svg-icons';
+import {  faMapLocation, faFileExcel } from '@fortawesome/free-solid-svg-icons';
 
 // Assume these icons are imported from an icon library
 import {
@@ -43,6 +43,11 @@ const navItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Caracterización",
     path: "/caracterizacion",
+  },
+  {
+    icon: <FontAwesomeIcon icon={faFileExcel} />,
+    name: "Reportes",
+    path: "/reportes",
   },
 ];
 
