@@ -15,12 +15,56 @@ interface Asistencia {
   [key: string]: any;
 }
 
+interface AsistenciaPorGenero {
+  genero_normalizado: string;
+  total_asistencias: number;
+  porcentaje_asistencias: number;
+}
+
+interface EstadisticasGenero {
+  asistencias_por_genero: AsistenciaPorGenero[];
+  estadisticas_generales: {
+    total_asistencias: number;
+    total_generos: number;
+  };
+  filtros: {
+    fecha_inicio: string | null;
+    fecha_fin: string | null;
+    fecha_especifica: string | null;
+  };
+}
+
 const API_URL = import.meta.env.VITE_API_URL + "asistencias";
 
-export default function Home() {
+// Debug: Verificar variables de entorno
+console.log("🔧 VITE_API_URL:", import.meta.env.VITE_API_URL);
+console.log("🔧 API_URL completa:", API_URL);
+
+// Componente para la barra de progreso
+const ProgressBar = ({ percentage, colorClass }: { percentage: number; colorClass: string }) => {
+  return (
+    <div className="mt-3">
+      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+        <div 
+          className={`h-2 rounded-full transition-all duration-300 ${colorClass}`}
+          style={{ width: `${Math.min(percentage, 100)}%` }}
+        ></div>
+      </div>
+    </div>
+  );
+};
+
+export default function Asistencia() {
   const navigate = useNavigate();
   const [data, setData] = useState<Asistencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [totalUsuarios, setTotalUsuarios] = useState<number>(0);
+  const [estadisticasGenero, setEstadisticasGenero] = useState<EstadisticasGenero | null>(null);
+
+  // Debug: Verificar token al inicializar
+  const token = localStorage.getItem("access");
+  console.log("🔑 Token en localStorage:", token ? "Presente" : "Ausente");
+  console.log("🔑 Longitud del token:", token?.length || 0);
 
   const [zonaSeleccionada, setZonaSeleccionada] = useState<string>("todos");
   const [comunaSeleccionada, setComunaSeleccionada] = useState<string>("");
@@ -39,24 +83,103 @@ export default function Home() {
       return;
     }
 
+    console.log("🔄 Iniciando carga de asistencias...");
+    setLoading(true);
+
+    // Timeout de seguridad - si después de 10 segundos no hay respuesta, mostrar error
+    const timeoutId = setTimeout(() => {
+      console.log("⏰ Timeout alcanzado, deteniendo loading");
+      setLoading(false);
+    }, 10000);
+
     axios
       .get<Asistencia[]>(API_URL, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        timeout: 8000, // timeout de 8 segundos para la petición
       })
       .then((res) => {
+        console.log("✅ Asistencias cargadas:", res.data.length, "registros");
         setData(res.data);
+        clearTimeout(timeoutId);
       })
       .catch((err) => {
-        console.error("Error al cargar datos:", err);
-        if (err.response && err.response.status === 401) {
-          localStorage.clear();
-          navigate("/login");
+        console.error("❌ Error al cargar datos:", err);
+        console.error("URL:", API_URL);
+        console.error("Token presente:", !!token);
+        
+        if (err.response) {
+          console.error("Status:", err.response.status);
+          console.error("Response:", err.response.data);
         }
+        
+        if (err.response && err.response.status === 401) {
+          console.log("🔑 Token expirado, redirigiendo al login");
+          localStorage.clear();
+          navigate("/");
+        }
+        clearTimeout(timeoutId);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        console.log("🏁 Finalizando carga de asistencias");
+        setLoading(false);
+      });
   }, [navigate]);
+
+  // Función para obtener el total de usuarios
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    
+    if (!token) return;
+
+    const fetchTotalUsuarios = async () => {
+      try {
+        console.log("🔄 Obteniendo total de usuarios...");
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}usuarios/count`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log("✅ Total usuarios obtenido:", response.data.total_usuarios);
+        setTotalUsuarios(response.data.total_usuarios);
+      } catch (error) {
+        console.error("❌ Error al obtener total de usuarios:", error);
+      }
+    };
+
+    fetchTotalUsuarios();
+  }, [navigate]);
+
+  // Función para obtener estadísticas de género
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    
+    if (!token) return;
+
+    const fetchEstadisticasGenero = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+        if (fechaFin) params.append('fecha_fin', fechaFin);
+        
+        const url = `${import.meta.env.VITE_API_URL}asistencias/por-genero${params.toString() ? '?' + params.toString() : ''}`;
+        console.log("🔄 Obteniendo estadísticas de género desde:", url);
+        
+        const response = await axios.get<EstadisticasGenero>(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log("✅ Estadísticas de género obtenidas:", response.data);
+        setEstadisticasGenero(response.data);
+      } catch (error) {
+        console.error("❌ Error al obtener estadísticas de género:", error);
+      }
+    };
+
+    fetchEstadisticasGenero();
+  }, [navigate, fechaInicio, fechaFin]);
 
   const esNumero = (valor: string): boolean => !isNaN(Number(valor));
 
@@ -173,8 +296,13 @@ export default function Home() {
         <div className="col-span-12">
           {loading ? (
             <div className="flex justify-center items-center h-[60vh]">
-              <div className="text-xl text-gray-600 dark:text-white animate-pulse">
-                🔄 Cargando datos...
+              <div className="text-center">
+                <div className="text-xl text-gray-600 dark:text-white animate-pulse mb-4">
+                  🔄 Cargando datos...
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Si esto toma mucho tiempo, revisa la consola (F12) para más detalles
+                </div>
               </div>
             </div>
           ) : (
@@ -211,7 +339,9 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-800 dark:text-white mb-6">
                 <div className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Total Usuarios Registrados</p>
-                  <p className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">2,421</p>
+                  <p className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">
+                    {totalUsuarios.toLocaleString()}
+                  </p>
                 </div>
                 <div className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Asistencia Total (filtrada)</p>
@@ -223,7 +353,71 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Sección de Estadísticas por Género */}
+              {estadisticasGenero && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
+                    👥 Asistencias por Género
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {estadisticasGenero.asistencias_por_genero.map((genero, index) => (
+                      <div 
+                        key={genero.genero_normalizado}
+                        className="p-4 rounded-xl shadow bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {genero.genero_normalizado === 'Mujer' ? '👩' : '👨'} {genero.genero_normalizado}
+                            </p>
+                            <p className={`text-2xl font-bold mt-1 ${
+                              index === 0 ? 'text-pink-600 dark:text-pink-400' : 'text-blue-600 dark:text-blue-400'
+                            }`}>
+                              {genero.total_asistencias.toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Porcentaje</p>
+                            <p className={`text-xl font-semibold ${
+                              index === 0 ? 'text-pink-600 dark:text-pink-400' : 'text-blue-600 dark:text-blue-400'
+                            }`}>
+                              {genero.porcentaje_asistencias.toFixed(1)}%
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Barra de progreso */}
+                        <ProgressBar 
+                          percentage={genero.porcentaje_asistencias}
+                          colorClass={index === 0 ? 'bg-pink-600 dark:bg-pink-400' : 'bg-blue-600 dark:bg-blue-400'}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Resumen general */}
+                  <div className="p-4 rounded-xl shadow bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">Total Asistencias (período)</p>
+                        <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                          {estadisticasGenero.estadisticas_generales.total_asistencias.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">Géneros Registrados</p>
+                        <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                          {estadisticasGenero.estadisticas_generales.total_generos}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <GraficoPromedioParque datosFiltrados={datosFiltrados} />
+              {/* 
               <hr></hr>
                 <ul className="list-disc pl-5 space-y-1">
                   {datosFiltrados.map((d, i) => (
@@ -232,6 +426,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
+              */}
             </section>
           )}
         </div>

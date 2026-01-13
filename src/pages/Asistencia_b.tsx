@@ -38,7 +38,7 @@ export default function Home() {
     const token = localStorage.getItem("access");
 
     if (!token) {
-      navigate("/login");
+      navigate("/");
       return;
     }
 
@@ -59,7 +59,7 @@ export default function Home() {
         console.error("Error al cargar datos:", err);
         if (err.response && err.response.status === 401) {
           localStorage.clear();
-          navigate("/login");
+          navigate("/");
         }
       })
       .finally(() => setLoading(false));
@@ -168,6 +168,8 @@ export default function Home() {
                     className="w-full border border-gray-300 p-2 rounded-lg"
                     value={fechaInicio}
                     onChange={(e) => setFechaInicio(e.target.value)}
+                    placeholder="Selecciona la fecha inicial"
+                    title="Selecciona la fecha inicial"
                   />
                 </div>
 
@@ -180,6 +182,8 @@ export default function Home() {
                     className="w-full border border-gray-300 p-2 rounded-lg"
                     value={fechaFin}
                     onChange={(e) => setFechaFin(e.target.value)}
+                    placeholder="Selecciona la fecha final"
+                    title="Selecciona la fecha final"
                   />
                 </div>
               </div>

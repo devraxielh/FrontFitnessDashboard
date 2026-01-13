@@ -31,8 +31,29 @@ export default function Dashboard() {
   }, []);
 
   return (
-      <>
-      <MapaComunasAsistencias datosFiltrados={datosFiltrados} />
-      </>
+    <div className="w-full max-w-full overflow-hidden">
+      <div className="px-2 sm:px-4 md:px-6 lg:px-8">
+        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 md:mb-6">
+          📍 Mapa de Asistencias por Comuna
+        </h1>
+        <div className="w-full relative">
+          <MapaComunasAsistencias datosFiltrados={datosFiltrados} />
+        </div>
+        
+        {/* Información adicional en móviles */}
+        <div className="mt-4 md:hidden">
+          <div className="bg-blue-50 dark:bg-gray-800 border border-blue-200 dark:border-gray-700 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+              💡 Información del Mapa
+            </h3>
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              • Usa pellizco para hacer zoom<br/>
+              • Arrastra para mover el mapa<br/>
+              • Los números muestran asistencias por comuna
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

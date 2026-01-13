@@ -53,8 +53,18 @@ export default function MapaComunasAsistencias({ datosFiltrados }: MapaComunasAs
   };
 
   return (
-    <div className="h-[760px] mt-8 rounded-2xl overflow-hidden shadow-md border border-gray-300">
-      <MapContainer center={[8.76, -75.88] as [number, number]} zoom={13} style={{ height: "100%", width: "100%" }}>
+    <div className="h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] xl:h-[700px] 2xl:h-[760px] mt-2 sm:mt-4 md:mt-6 lg:mt-8 rounded-lg md:rounded-xl lg:rounded-2xl overflow-hidden shadow-sm md:shadow-md border border-gray-300 dark:border-gray-600 relative z-0">
+      <MapContainer 
+        center={[8.76, -75.88] as [number, number]} 
+        zoom={12} 
+        minZoom={11}
+        maxZoom={16}
+        style={{ height: "100%", width: "100%" }}
+        scrollWheelZoom={true}
+        touchZoom={true}
+        doubleClickZoom={true}
+        dragging={true}
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
